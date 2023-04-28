@@ -10,6 +10,9 @@ const app = express();
 
 app.set("view engine", "ejs");
 
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static("public"));
+
 async function main() {
   try {
     await mongoose.connect(process.env.URI, { useNewUrlParser: true });
@@ -31,43 +34,48 @@ async function main() {
       name: "Pull some bitches",
     });
     const defaultItems = [item1, item2, item3];
-    Item.insertMany(defaultItems);
 
-    const pri = await Item.find();
-    console.log(pri);
+    app.get("/", async function (req, res) {
+      const pri = await Item.find();
+      console.log(pri.length);
+      if (pri.length === 0) {
+        Item.insertMany(defaultItems);
+      }
+      res.render("list", { listTitle: "Today", newListItems: pri });
+    });
+
+    // await process.env.DBNAME.dropDatabase();
+    // app.post("/", function (req, res) {
+    //   const item = req.body.newItem;
+    //   Item.insertOne({ name: item });
+    // });
   } catch (err) {
     console.log("ERR");
   }
 }
-main();
 
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static("public"));
+main();
 
 // const items = ["Buy Food", "Cook Food", "Eat Food"];
 // const workItems = [];
 
-app.get("/", function (req, res) {
-  // const day = date.getDate();
-
-  res.render("list", { listTitle: "Today" });
-});
+// app.get("/",async function (req, res) {
+//   // const day = date.getDate();
+//   const pri=await Item.find();
+//   console.log(pri);
+//   res.render("list", { listTitle: "Today", newListItems: pri });
+// });
 
 app.post("/", function (req, res) {
-  const item = req.body.newItem;
-
-  if (req.body.list === "Work") {
-    // workItems.push(item);
-    res.redirect("/work");
-  } else {
-    // items.push(item);
-    res.redirect("/");
-  }
+  const itemName = req.body.newItem;
+  const item = new Item({
+    name: itemName,
+  });
 });
 
-app.get("/work", function (req, res) {
-  res.render("list", { listTitle: "Work List" });
-});
+// app.get("/work", function (req, res) {
+//   res.render("list", { listTitle: "Work List", newListItems: workItems });
+// });
 
 app.get("/about", function (req, res) {
   res.render("about");
