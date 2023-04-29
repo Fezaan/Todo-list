@@ -3,13 +3,15 @@
   <div class="box" id="heading">
     <h1><%= listTitle %></h1>
   </div>
-  
+
   <div class="box">
     <% newListItems.forEach(element=>{ %>
-    <div class="item">
-      <input type="checkbox" />
-      <p><%=  element.name  %></p>
-    </div>
+    <form action="/delete" method="post">
+      <div class="item">
+        <input type="checkbox" name="checkbox" value="<%= element._id %>" onchange="this.form.submit()" />
+        <p><%= element.name %></p>
+      </div>
+    </form>
     <% }) %>
     <form class="item" action="/" method="post">
       <input
@@ -20,7 +22,7 @@
       />
       <button type="submit" name="list">+</button>
     </form>
-</div>
+  </div>
 </div>
 
 <%- include("footer") -%>

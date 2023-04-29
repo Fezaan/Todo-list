@@ -13,16 +13,17 @@ app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
+let itemSchema, Item, defaultItems, pri;
 async function main() {
   try {
     await mongoose.connect(process.env.URI, { useNewUrlParser: true });
     console.log("Connected");
 
-    const itemSchema = new mongoose.Schema({
+    itemSchema = new mongoose.Schema({
       name: String,
     });
 
-    const Item = mongoose.model("Item", itemSchema);
+    Item = mongoose.model("Item", itemSchema);
 
     const item1 = new Item({
       name: "Bathing",
@@ -33,11 +34,11 @@ async function main() {
     const item3 = new Item({
       name: "Pull some bitches",
     });
-    const defaultItems = [item1, item2, item3];
+    defaultItems = [item1, item2, item3];
 
     app.get("/", async function (req, res) {
-      const pri = await Item.find();
-      console.log(pri.length);
+      pri = await Item.find();
+      console.log(pri);
       if (pri.length === 0) {
         Item.insertMany(defaultItems);
       }
@@ -50,7 +51,7 @@ async function main() {
     //   Item.insertOne({ name: item });
     // });
   } catch (err) {
-    console.log("ERR");
+    console.log("ERR" + err);
   }
 }
 
@@ -71,6 +72,15 @@ app.post("/", function (req, res) {
   const item = new Item({
     name: itemName,
   });
+  item.save();
+  res.redirect("/");
+});
+
+app.post("/delete", async function (req, res) {
+  const checkedID = req.body.checkbox;
+  console.log(checkedID);
+  await Item.findOneAndDelete(checkedID);
+  res.redirect("/");
 });
 
 // app.get("/work", function (req, res) {
