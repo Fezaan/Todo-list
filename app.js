@@ -2,9 +2,9 @@
 
 const express = require("express");
 const bodyParser = require("body-parser");
-// const date = require(__dirname + "/date.js");
 const mongoose = require("mongoose");
 require("dotenv").config();
+var _ = require("lodash");
 
 const app = express();
 
@@ -43,18 +43,13 @@ async function main() {
 
     app.get("/", async function (req, res) {
       pri = await Item.find();
-      console.log(pri);
+      // console.log(pri);
       if (pri.length === 0) {
         Item.insertMany(defaultItems);
       }
       res.render("list", { listTitle: "Today", newListItems: pri });
     });
 
-    // await process.env.DBNAME.dropDatabase();
-    // app.post("/", function (req, res) {
-    //   const item = req.body.newItem;
-    //   Item.insertOne({ name: item });
-    // });
   } catch (err) {
     console.log("ERR" + err);
   }
@@ -63,9 +58,9 @@ async function main() {
 main();
 
 app.post("/", async function (req, res) {
-  const itemName = req.body.newItem;
-  const listName = req.body.list;
-  console.log(listName);
+  let itemName = req.body.newItem;
+  let listName = req.body.list;
+  // console.log(listName);
   const item = new Item({
     name: itemName,
   });
@@ -74,7 +69,7 @@ app.post("/", async function (req, res) {
     res.redirect("/");
   } else {
     let lostList = await List.findOne({ name: listName });
-    console.log(lostList._id);
+    // console.log(lostList._id);
     lostList.items.push(item);
     lostList.save();
     res.redirect("/" + listName);
@@ -82,15 +77,28 @@ app.post("/", async function (req, res) {
 });
 
 app.post("/delete", async function (req, res) {
-  const checkedID = req.body.checkbox;
-  console.log(checkedID);
-  await Item.findByIdAndRemove(checkedID);
-  res.redirect("/");
+  let checkedID = req.body.checkbox;
+  let listToUpdate = req.body.listName;
+  // console.log(listToUpdate, checkedID);
+
+  if (listToUpdate === "Today") {
+    await Item.findByIdAndRemove(checkedID);
+    res.redirect("/");
+  } else {
+    // console.log(await List.findOne( {name: listToUpdate}));
+    await List.findOneAndUpdate(
+      { name: listToUpdate },
+      {
+        $pull: { items: { _id: checkedID } },
+      }
+    );
+    res.redirect("/" + listToUpdate);
+  }
 });
 
 app.get("/:customName", async function (req, res) {
-  let customName = req.params.customName;
-  const list = new List({
+  let customName = _.capitalize(req.params.customName);
+  let list = new List({
     name: customName,
     items: defaultItems,
   });
@@ -99,7 +107,7 @@ app.get("/:customName", async function (req, res) {
     // console.log('Already in db');
     res.render("list", { listTitle: pri.name, newListItems: pri.items });
   } else {
-    console.log("List doesnt exist");
+    // console.log("List doesnt exist");
     list.save();
     res.redirect("/" + customName);
   }
