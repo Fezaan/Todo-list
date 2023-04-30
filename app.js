@@ -13,7 +13,7 @@ app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-let itemSchema, Item, defaultItems, pri;
+let itemSchema, Item, defaultItems, pri, listSchema, List;
 async function main() {
   try {
     await mongoose.connect(process.env.URI, { useNewUrlParser: true });
@@ -35,6 +35,11 @@ async function main() {
       name: "Pull some bitches",
     });
     defaultItems = [item1, item2, item3];
+    listSchema = {
+      name: String,
+      items: [itemSchema],
+    };
+    List = mongoose.model("List", listSchema);
 
     app.get("/", async function (req, res) {
       pri = await Item.find();
@@ -57,35 +62,48 @@ async function main() {
 
 main();
 
-// const items = ["Buy Food", "Cook Food", "Eat Food"];
-// const workItems = [];
-
-// app.get("/",async function (req, res) {
-//   // const day = date.getDate();
-//   const pri=await Item.find();
-//   console.log(pri);
-//   res.render("list", { listTitle: "Today", newListItems: pri });
-// });
-
-app.post("/", function (req, res) {
+app.post("/", async function (req, res) {
   const itemName = req.body.newItem;
+  const listName = req.body.list;
+  console.log(listName);
   const item = new Item({
     name: itemName,
   });
-  item.save();
-  res.redirect("/");
+  if (listName === "Today") {
+    item.save();
+    res.redirect("/");
+  } else {
+    let lostList = await List.findOne({ name: listName });
+    console.log(lostList._id);
+    lostList.items.push(item);
+    lostList.save();
+    res.redirect("/" + listName);
+  }
 });
 
 app.post("/delete", async function (req, res) {
   const checkedID = req.body.checkbox;
   console.log(checkedID);
-  await Item.findOneAndDelete(checkedID);
+  await Item.findByIdAndRemove(checkedID);
   res.redirect("/");
 });
 
-// app.get("/work", function (req, res) {
-//   res.render("list", { listTitle: "Work List", newListItems: workItems });
-// });
+app.get("/:customName", async function (req, res) {
+  let customName = req.params.customName;
+  const list = new List({
+    name: customName,
+    items: defaultItems,
+  });
+  let pri = await List.findOne({ name: customName });
+  if (pri) {
+    // console.log('Already in db');
+    res.render("list", { listTitle: pri.name, newListItems: pri.items });
+  } else {
+    console.log("List doesnt exist");
+    list.save();
+    res.redirect("/" + customName);
+  }
+});
 
 app.get("/about", function (req, res) {
   res.render("about");
